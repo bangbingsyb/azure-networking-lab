@@ -1,0 +1,73 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]"
+    },
+    "customerPublicIPAddressName": {
+      "type": "string",
+      "defaultValue": "customer-pip"
+    },
+    "customerVirtualNetworkName": {
+      "type": "string",
+      "defaultValue": "customer-vnet"
+    }
+  },
+  "variables": {
+    "networkApiVersion": "2021-05-01",
+    "publicIPAddressSku": "Standard",
+    "workloadSubnetName": "workload",
+    "delegatedSubnetName": "delegated",
+    "vnetAddressPrefix": "10.0.0.0/16",
+    "workloadSubnetAddressPrefix": "10.0.0.0/24",
+    "delegatedSubnetAddressPrefix": "10.0.1.0/24",
+    "ipAllocationMethod": "Static"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[parameters('customerPublicIPAddressName')]",
+      "location": "[parameters('location')]",
+      "apiVersion": "[variables('networkApiVersion')]",
+      "sku": {
+        "name": "[variables('publicIPAddressSku')]"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "[variables('ipAllocationMethod')]"
+      }
+    },
+    {
+      "comments": "Virtual Network",
+      "name": "[parameters('customerVirtualNetworkName')]",
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "[variables('networkApiVersion')]",
+      "location": "[parameters('location')]",
+      "tags": {
+        "fastpathenabled": "true"
+      },
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('vnetAddressPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('workloadSubnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('workloadSubnetAddressPrefix')]"
+            }
+          },
+          {
+            "name": "[variables('delegatedSubnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('delegatedSubnetAddressPrefix')]"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
