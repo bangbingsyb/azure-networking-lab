@@ -1,0 +1,55 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]"
+    },
+    "customerVirtualNetworkName": {
+      "type": "string",
+      "defaultValue": "customer-vnet"
+    }
+  },
+  "variables": {
+    "networkApiVersion": "2021-05-01",
+    "workloadSubnetName": "workload",
+    "delegatedSubnetName": "delegated",
+    "vnetAddressPrefix": "10.0.0.0/16",
+    "workloadSubnetAddressPrefix": "10.0.0.0/24",
+    "delegatedSubnetAddressPrefix": "10.0.1.0/24"
+  },
+  "resources": [
+    {
+      "comments": "Virtual Network",
+      "name": "[parameters('customerVirtualNetworkName')]",
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "[variables('networkApiVersion')]",
+      "location": "[parameters('location')]",
+      "tags": {
+        "fastpathenabled": "true"
+      },
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('vnetAddressPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('workloadSubnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('workloadSubnetAddressPrefix')]"
+            }
+          },
+          {
+            "name": "[variables('delegatedSubnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('delegatedSubnetAddressPrefix')]"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
