@@ -12,13 +12,21 @@
     "customerResourceGroupName": {
       "type": "string"
     },
+    "customerPublicIPAddressName": {
+      "type": "string",
+      "defaultValue": "customer-pip"
+    },
     "customerVirtualNetworkName": {
       "type": "string",
       "defaultValue": "customer-vnet"
     },
-    "customerDelegatedSubnetName": {
+    "customerTrustedSubnetName": {
       "type": "string",
-      "defaultValue": "delegated"
+      "defaultValue": "trusted"
+    },
+    "customerUntrustedSubnetName": {
+      "type": "string",
+      "defaultValue": "untrusted"
     },
     "providerVirtualNetworkName": {
       "type": "string",
@@ -26,15 +34,19 @@
     },
     "providerSubnetName": {
       "type": "string",
-      "defaultValue": "provider-subnet"
+      "defaultValue": "management"
     },
-    "loadBalancerName": {
+    "publicLoadBalancerName": {
       "type": "string",
-      "defaultValue": "provider-lb"
+      "defaultValue": "provider-public-lb"
     },
-    "loadBalancerFrontendIPAddress": {
+    "internalLoadBalancerName": {
       "type": "string",
-      "defaultValue": "10.0.1.10"
+      "defaultValue": "provider-internal-lb"
+    },
+    "internalLoadBalancerFrontendIPAddress": {
+      "type": "string",
+      "defaultValue": "10.0.0.10"
     },
     "vmssName": {
       "type": "string",
@@ -70,7 +82,9 @@
     "networkApiVersion": "2021-05-01",
     "loadBalancerSku": "Standard",
     "loadBalancerBackendAddressPoolName": "bp1",
-    "customerSubnetResourceId": "[resourceId(parameters('customerSubscriptionId'), parameters('customerResourceGroupName'), 'Microsoft.Network/virtualNetworks/subnets', parameters('customerVirtualNetworkName'), parameters('customerDelegatedSubnetName'))]",
+    "customerPublicIPAddressResourceId": "[resourceId(parameters('customerSubscriptionId'), parameters('customerResourceGroupName'), 'Microsoft.Network/publicIPAddresses', parameters('customerPublicIPAddressName'))]",
+    "customerTrustedSubnetResourceId": "[resourceId(parameters('customerSubscriptionId'), parameters('customerResourceGroupName'), 'Microsoft.Network/virtualNetworks/subnets', parameters('customerVirtualNetworkName'), parameters('customerTrustedSubnetName'))]",
+    "customerUntrustedSubnetResourceId": "[resourceId(parameters('customerSubscriptionId'), parameters('customerResourceGroupName'), 'Microsoft.Network/virtualNetworks/subnets', parameters('customerVirtualNetworkName'), parameters('customerUntrustedSubnetName'))]",
     "providerSubnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('providerVirtualNetworkName'), parameters('providerSubnetName'))]",
     "osType": {
       "publisher": "Canonical",
@@ -94,7 +108,69 @@
   "resources": [
     {
       "type": "Microsoft.Network/loadBalancers",
-      "name": "[parameters('loadBalancerName')]",
+      "name": "[parameters('publicLoadBalancerName')]",
+      "location": "[parameters('location')]",
+      "apiVersion": "[variables('networkApiVersion')]",
+      "dependsOn": [],
+      "sku": {
+        "name": "[variables('loadBalancerSku')]"
+      },
+      "properties": {
+        "ipBasedBackendPools": true,
+        "isRemoteFrontend": true,
+        "frontendIPConfigurations": [
+          {
+            "name": "fe1",
+            "properties": {
+              "publicIPAddress": {
+                "id": "[variables('customerPublicIPAddressResourceId')]"
+              }
+            }
+          }
+        ],
+        "backendAddressPools": [
+          {
+            "name": "[variables('loadBalancerBackendAddressPoolName')]"
+          }
+        ],
+        "probes": [
+          {
+            "name": "httpProbe",
+            "properties": {
+              "protocol": "HTTP",
+              "requestPath": "/",
+              "port": 80,
+              "intervalInSeconds": 5,
+              "numberOfProbes": 2
+            }
+          }
+        ],
+        "loadBalancingRules": [
+          {
+            "name": "lb1",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', parameters('publicLoadBalancerName'), 'fe1')]"
+              },
+              "backendAddressPool": {
+                "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('publicLoadBalancerName'), variables('loadBalancerBackendAddressPoolName'))]"
+              },
+              "protocol": "TCP",
+              "frontendPort": 80,
+              "backendPort": 80,
+              "enableFloatingIP": false,
+              "idleTimeoutInMinutes": 5,
+              "probe": {
+                "id": "[resourceId('Microsoft.Network/loadBalancers/probes', parameters('publicLoadBalancerName'), 'httpProbe')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/loadBalancers",
+      "name": "[parameters('internalLoadBalancerName')]",
       "location": "[parameters('location')]",
       "apiVersion": "[variables('networkApiVersion')]",
       "dependsOn": [],
@@ -109,9 +185,9 @@
             "name": "fe1",
             "properties": {
               "subnet": {
-                "id": "[variables('customerSubnetResourceId')]"
+                "id": "[variables('customerTrustedSubnetResourceId')]"
               },
-              "privateIPAddress": "[parameters('loadBalancerFrontendIPAddress')]",
+              "privateIPAddress": "[parameters('internalLoadBalancerFrontendIPAddress')]",
               "privateIPAllocationMethod": "Static"
             }
           }
@@ -138,10 +214,10 @@
             "name": "lb1",
             "properties": {
               "frontendIPConfiguration": {
-                "id": "[resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', parameters('loadBalancerName'), 'fe1')]"
+                "id": "[resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', parameters('internalLoadBalancerName'), 'fe1')]"
               },
               "backendAddressPool": {
-                "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('loadBalancerName'), variables('loadBalancerBackendAddressPoolName'))]"
+                "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('internalLoadBalancerName'), variables('loadBalancerBackendAddressPoolName'))]"
               },
               "protocol": "TCP",
               "frontendPort": 80,
@@ -149,7 +225,7 @@
               "enableFloatingIP": false,
               "idleTimeoutInMinutes": 5,
               "probe": {
-                "id": "[resourceId('Microsoft.Network/loadBalancers/probes', parameters('loadBalancerName'), 'httpProbe')]"
+                "id": "[resourceId('Microsoft.Network/loadBalancers/probes', parameters('internalLoadBalancerName'), 'httpProbe')]"
               }
             }
           }
@@ -170,7 +246,8 @@
         "fastpathenabled": "true"
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Network/loadBalancers', parameters('loadBalancerName'))]"
+        "[resourceId('Microsoft.Network/loadBalancers', parameters('publicLoadBalancerName'))]",
+        "[resourceId('Microsoft.Network/loadBalancers', parameters('internalLoadBalancerName'))]"
       ],
       "properties": {
         "overprovision": "false",
@@ -212,7 +289,7 @@
                 }
               },
               {
-                "name": "elasticNic",
+                "name": "elasticNic-untrusted",
                 "properties": {
                   "primary": false,
                   "nicType": "Elastic",
@@ -221,13 +298,13 @@
                       "name": "ipConfig1",
                       "properties": {
                         "subnet": {
-                          "id": "[variables('customerSubnetResourceId')]"
+                          "id": "[variables('customerUntrustedSubnetResourceId')]"
                         },
                         "primary": true,
                         "privateIPAddressVersion": "IPv4",
                         "loadBalancerBackendAddressPools": [
                           {
-                            "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('loadBalancerName'), variables('loadBalancerBackendAddressPoolName'))]"
+                            "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('publicLoadBalancerName'), variables('loadBalancerBackendAddressPoolName'))]"
                           }
                         ]
                       }
@@ -236,12 +313,48 @@
                 }
               },
               {
-                "name": "parentNic",
+                "name": "elasticNic-trusted",
+                "properties": {
+                  "primary": false,
+                  "nicType": "Elastic",
+                  "ipConfigurations": [
+                    {
+                      "name": "ipConfig1",
+                      "properties": {
+                        "subnet": {
+                          "id": "[variables('customerTrustedSubnetResourceId')]"
+                        },
+                        "primary": true,
+                        "privateIPAddressVersion": "IPv4",
+                        "loadBalancerBackendAddressPools": [
+                          {
+                            "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('internalLoadBalancerName'), variables('loadBalancerBackendAddressPoolName'))]"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "parentNic-untrusted",
                 "properties": {
                   "primary": false,
                   "ElasticNetworkInterfaceLinkConfigurations": [
                     {
-                      "name": "elasticNic",
+                      "name": "elasticNic-untrusted",
+                      "Primary": true
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "parentNic-trusted",
+                "properties": {
+                  "primary": false,
+                  "ElasticNetworkInterfaceLinkConfigurations": [
+                    {
+                      "name": "elasticNic-trusted",
                       "Primary": true
                     }
                   ]

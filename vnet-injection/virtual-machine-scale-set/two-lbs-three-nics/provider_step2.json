@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]"
+    },
+    "providerVirtualNetworkName": {
+      "type": "string",
+      "defaultValue": "provider-vnet"
+    },
+    "providerSubnetName": {
+      "type": "string",
+      "defaultValue": "management"
+    }
+  },
+  "variables": {
+    "networkApiVersion": "2021-05-01",
+    "providerVNetAddressPrefix": "10.1.0.0/16",
+    "providerSubnetAddressPrefix": "10.1.0.0/24"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "[parameters('providerVirtualNetworkName')]",
+      "location": "[parameters('location')]",
+      "apiVersion": "[variables('networkApiVersion')]",
+      "tags": {
+        "fastpathenabled": "true"
+      },
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('providerVNetAddressPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[parameters('providerSubnetName')]",
+            "properties": {
+              "addressPrefix": "[variables('providerSubnetAddressPrefix')]"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

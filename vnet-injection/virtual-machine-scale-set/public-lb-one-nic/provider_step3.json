@@ -12,6 +12,10 @@
     "customerResourceGroupName": {
       "type": "string"
     },
+    "customerPublicIPAddressName": {
+      "type": "string",
+      "defaultValue": "customer-pip"
+    },
     "customerVirtualNetworkName": {
       "type": "string",
       "defaultValue": "customer-vnet"
@@ -31,10 +35,6 @@
     "loadBalancerName": {
       "type": "string",
       "defaultValue": "provider-lb"
-    },
-    "loadBalancerFrontendIPAddress": {
-      "type": "string",
-      "defaultValue": "10.0.1.10"
     },
     "vmssName": {
       "type": "string",
@@ -70,6 +70,7 @@
     "networkApiVersion": "2021-05-01",
     "loadBalancerSku": "Standard",
     "loadBalancerBackendAddressPoolName": "bp1",
+    "customerPublicIPAddressResourceId": "[resourceId(parameters('customerSubscriptionId'), parameters('customerResourceGroupName'), 'Microsoft.Network/publicIPAddresses', parameters('customerPublicIPAddressName'))]",
     "customerSubnetResourceId": "[resourceId(parameters('customerSubscriptionId'), parameters('customerResourceGroupName'), 'Microsoft.Network/virtualNetworks/subnets', parameters('customerVirtualNetworkName'), parameters('customerDelegatedSubnetName'))]",
     "providerSubnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('providerVirtualNetworkName'), parameters('providerSubnetName'))]",
     "osType": {
@@ -108,11 +109,9 @@
           {
             "name": "fe1",
             "properties": {
-              "subnet": {
-                "id": "[variables('customerSubnetResourceId')]"
-              },
-              "privateIPAddress": "[parameters('loadBalancerFrontendIPAddress')]",
-              "privateIPAllocationMethod": "Static"
+              "publicIPAddress": {
+                "id": "[variables('customerPublicIPAddressResourceId')]"
+              }
             }
           }
         ],
@@ -207,42 +206,6 @@
                         "primary": true,
                         "privateIPAddressVersion": "IPv4"
                       }
-                    }
-                  ]
-                }
-              },
-              {
-                "name": "elasticNic",
-                "properties": {
-                  "primary": false,
-                  "nicType": "Elastic",
-                  "ipConfigurations": [
-                    {
-                      "name": "ipConfig1",
-                      "properties": {
-                        "subnet": {
-                          "id": "[variables('customerSubnetResourceId')]"
-                        },
-                        "primary": true,
-                        "privateIPAddressVersion": "IPv4",
-                        "loadBalancerBackendAddressPools": [
-                          {
-                            "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('loadBalancerName'), variables('loadBalancerBackendAddressPoolName'))]"
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "name": "parentNic",
-                "properties": {
-                  "primary": false,
-                  "ElasticNetworkInterfaceLinkConfigurations": [
-                    {
-                      "name": "elasticNic",
-                      "Primary": true
                     }
                   ]
                 }

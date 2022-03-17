@@ -76,7 +76,7 @@
     "osType": {
       "publisher": "Canonical",
       "offer": "UbuntuServer",
-      "sku": "16.04-LTS",
+      "sku": "18_04-lts-gen2",
       "version": "latest"
     },
     "imageReference": "[variables('osType')]",
@@ -161,7 +161,7 @@
       "location": "[parameters('location')]",
       "apiVersion": "2017-12-01",
       "sku": {
-        "name": "Standard_DS1_v2",
+        "name": "Standard_DS3_v2",
         "tier": "Standard",
         "capacity": "[parameters('instanceCount')]"
       },
@@ -195,7 +195,7 @@
               {
                 "name": "standardNic",
                 "properties": {
-                  "primary": false,
+                  "primary": true,
                   "ipConfigurations": [
                     {
                       "name": "ipConfig1",
@@ -237,7 +237,7 @@
               {
                 "name": "parentNic",
                 "properties": {
-                  "primary": true,
+                  "primary": false,
                   "ElasticNetworkInterfaceLinkConfigurations": [
                     {
                       "name": "elasticNic",
