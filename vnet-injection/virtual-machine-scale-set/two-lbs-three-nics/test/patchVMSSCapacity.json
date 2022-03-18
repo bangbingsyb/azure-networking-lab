@@ -1,7 +1,0 @@
-{
-  "sku": {
-    "name": "Standard_DS1_v2",
-    "tier": "Standard",
-    "capacity": 3
-  }
-}

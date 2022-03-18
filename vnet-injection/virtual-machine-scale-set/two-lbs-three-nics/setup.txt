@@ -14,3 +14,7 @@ az account set --subscription %providerSubscriptionId%
 az group create --name %providerResourceGroup% --location westcentralus
 az deployment group create --resource-group %providerResourceGroup% --template-file provider_step2.json --verbose
 az deployment group create --resource-group %providerResourceGroup% --template-file provider_step3.json --parameters customerSubscriptionId=%customerSubscriptionId% customerResourceGroupName=%customerResourceGroup% adminKey=%sshKey% --verbose
+
+az deployment group create --resource-group %providerResourceGroup% --template-file vmss-2nics-untrusted.json --parameters customerSubscriptionId=%customerSubscriptionId% customerResourceGroupName=%customerResourceGroup% adminKey=%sshKey% --verbose --debug
+az deployment group create --resource-group %providerResourceGroup% --template-file vmss-2nics-trusted.json --parameters customerSubscriptionId=%customerSubscriptionId% customerResourceGroupName=%customerResourceGroup% adminKey=%sshKey% --verbose --debug
+az deployment group create --resource-group %providerResourceGroup% --template-file vmss-3nics.json --parameters customerSubscriptionId=%customerSubscriptionId% customerResourceGroupName=%customerResourceGroup% adminKey=%sshKey% --verbose --debug
