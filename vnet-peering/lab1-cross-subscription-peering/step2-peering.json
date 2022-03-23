@@ -1,0 +1,48 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "sourceVNetName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name for source VNet"
+      }
+    },
+    "targetVNetName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name for target VNet"
+      }
+    },
+    "targetVNetSubscriptionId": {
+      "type": "string",
+      "metadata": {
+        "description": "Subscription ID for target VNet"
+      }
+    },
+    "targetVNetResourceGroupName": {
+      "type": "string",
+      "metadata": {
+        "description": "Resource group name for target VNet"
+      }
+    }
+  },
+  "variables": {
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+      "apiVersion": "2020-05-01",
+      "name": "[format('{0}/{1}', parameters('sourceVNetName'), format('{0}-{1}', parameters('sourceVNetName'), parameters('targetVNetName')))]",
+      "properties": {
+        "allowVirtualNetworkAccess": true,
+        "allowForwardedTraffic": true,
+        "allowGatewayTransit": false,
+        "useRemoteGateways": false,
+        "remoteVirtualNetwork": {
+          "id": "[resourceId(parameters('targetVNetSubscriptionId'), parameters('targetVNetResourceGroupName'), 'Microsoft.Network/virtualNetworks', parameters('targetVNetName'))]"
+        }
+      }
+    }
+  ]
+}
