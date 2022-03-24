@@ -53,7 +53,7 @@
       "type": "string",
       "defaultValue": "[concat('vnet-', parameters('uniqueSuffix'))]",
       "metadata": {
-        "description": "Name for the virtual network."
+        "description": "Name for the spoke virtual network."
       }
     },
     "addressPrefix": {
@@ -68,6 +68,18 @@
       "defaultValue": "10.0.0.0/24",
       "metadata": {
         "description": "Address range for the workload subnet."
+      }
+    },
+    "routeTableName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name for the route table."
+      }
+    },
+    "hubNetworkName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name for the hub virtual network."
       }
     }
   },
@@ -93,11 +105,48 @@
           {
             "name": "[variables('workloadSubnetName')]",
             "properties": {
-              "addressPrefix": "[parameters('workloadSubnetPrefix')]"
+              "addressPrefix": "[parameters('workloadSubnetPrefix')]",
+              "routeTable": {
+                "id": "[resourceId('Microsoft.Network/routeTables', parameters('routeTableName'))]"
+              }
             }
           }
         ]
       }
+    },
+    {
+      "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+      "apiVersion": "2020-05-01",
+      "name": "[format('{0}/{1}', parameters('virtualNetworkName'), format('{0}-{1}', parameters('virtualNetworkName'), parameters('hubNetworkName')))]",
+      "properties": {
+        "allowVirtualNetworkAccess": true,
+        "allowForwardedTraffic": true,
+        "allowGatewayTransit": false,
+        "useRemoteGateways": false,
+        "remoteVirtualNetwork": {
+          "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('hubNetworkName'))]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+      "apiVersion": "2020-05-01",
+      "name": "[format('{0}/{1}', parameters('hubNetworkName'), format('{0}-{1}', parameters('hubNetworkName'), parameters('virtualNetworkName')))]",
+      "properties": {
+        "allowVirtualNetworkAccess": true,
+        "allowForwardedTraffic": true,
+        "allowGatewayTransit": false,
+        "useRemoteGateways": false,
+        "remoteVirtualNetwork": {
+          "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]"
+      ]
     },
     {
       "type": "Microsoft.Network/networkInterfaces",

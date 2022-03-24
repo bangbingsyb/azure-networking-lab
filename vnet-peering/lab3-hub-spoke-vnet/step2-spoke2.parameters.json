@@ -3,19 +3,25 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "vmName": {
-      "value": "vm-spoke1"
+      "value": "vm-spoke2"
     },
     "adminUsername": {
       "value": "azureuser"
     },
     "virtualNetworkName": {
-      "value": "spoke1"
+      "value": "spoke2"
     },
     "addressPrefix": {
-      "value": "10.0.0.0/16"
+      "value": "10.1.0.0/16"
     },
     "workloadSubnetPrefix": {
-      "value": "10.0.0.0/24"
+      "value": "10.1.0.0/24"
+    },
+    "routeTableName": {
+      "value": "routetable-spoke"
+    },
+    "hubNetworkName": {
+      "value": "hub"
     }
   }
 }

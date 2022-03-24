@@ -49,25 +49,11 @@
         "description": "The Windows version for the VM."
       }
     },
-    "publicIpName": {
-      "type": "string",
-      "defaultValue": "[concat('pip-', parameters('uniqueSuffix'))]",
-      "metadata": {
-        "description": "Name for the public IP used to access the virtual machine."
-      }
-    },
     "virtualNetworkName": {
       "type": "string",
       "defaultValue": "[concat('vnet-', parameters('uniqueSuffix'))]",
       "metadata": {
         "description": "Name for the virtual network."
-      }
-    },
-    "bastionHostName": {
-      "type": "string",
-      "defaultValue": "[concat('bastion-', parameters('uniqueSuffix'))]",
-      "metadata": {
-        "description": "Name for the Bastion host."
       }
     },
     "addressPrefix": {
@@ -90,12 +76,55 @@
       "metadata": {
         "description": "Address range for the Bastion subnet."
       }
+    },
+    "azureFirewallSubnetPrefix": {
+      "type": "string",
+      "defaultValue": "10.0.2.0/24",
+      "metadata": {
+        "description": "Address range for the Azure firewall subnet."
+      }
+    },
+    "bastionHostName": {
+      "type": "string",
+      "defaultValue": "[concat('bastion-', parameters('uniqueSuffix'))]",
+      "metadata": {
+        "description": "Name for the Bastion host."
+      }
+    },
+    "bastionPublicIpName": {
+      "type": "string",
+      "defaultValue": "[concat('bastion-pip-', parameters('uniqueSuffix'))]",
+      "metadata": {
+        "description": "Name for the public IP used to access the virtual machine."
+      }
+    },
+    "azureFirewallName": {
+      "type": "string",
+      "defaultValue": "[concat('azurefw-', parameters('uniqueSuffix'))]",
+      "metadata": {
+        "description": "Name for the Azure firewall."
+      }
+    },
+    "azureFirewallPublicIpName": {
+      "type": "string",
+      "defaultValue": "[concat('azurefw-pip-', parameters('uniqueSuffix'))]",
+      "metadata": {
+        "description": "Name for the Azure firewall public IP."
+      }
+    },
+    "routeTableName": {
+      "type": "string",
+      "defaultValue": "[concat('routetable-', parameters('uniqueSuffix'))]",
+      "metadata": {
+        "description": "Name for the route table."
+      }
     }
   },
   "variables": {
     "nicName": "[concat('nic-', parameters('uniqueSuffix'))]",
     "workloadSubnetName": "workload",
     "bastionSubnetName": "AzureBastionSubnet",
+    "azureFirewallSubnetName": "AzureFirewallSubnet",
     "computerName": "[concat(parameters('vmName'), '-', parameters('location'))]",
     "computerShortName": "[substring(variables('computerName'), 0, min(14, length(variables('computerName'))))]"
   },
@@ -103,7 +132,19 @@
     {
       "type": "Microsoft.Network/publicIPAddresses",
       "apiVersion": "2021-02-01",
-      "name": "[parameters('publicIpName')]",
+      "name": "[parameters('bastionPublicIpName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "Static"
+      }
+    },
+    {
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2021-02-01",
+      "name": "[parameters('azureFirewallPublicIpName')]",
       "location": "[parameters('location')]",
       "sku": {
         "name": "Standard"
@@ -135,9 +176,96 @@
             "properties": {
               "addressPrefix": "[parameters('bastionSubnetPrefix')]"
             }
+          },
+          {
+            "name": "[variables('azureFirewallSubnetName')]",
+            "properties": {
+              "addressPrefix": "[parameters('azureFirewallSubnetPrefix')]"
+            }
           }
         ]
       }
+    },
+    {
+      "type": "Microsoft.Network/bastionHosts",
+      "apiVersion": "2020-05-01",
+      "name": "[parameters('bastionHostName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Basic"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "IpConf",
+            "properties": {
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), variables('bastionSubnetName'))]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('bastionPublicIpName'))]"
+              }
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', parameters('bastionPublicIpName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Network/azureFirewalls",
+      "apiVersion": "2020-05-01",
+      "name": "[parameters('azureFirewallName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "sku": {
+          "name": "AZFW_VNet",
+          "tier": "Premium"
+        },
+        "threatIntelMode": "Alert",
+        "ipConfigurations": [
+          {
+            "name": "[parameters('azureFirewallName')]",
+            "properties": {
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('azureFirewallPublicIpName'))]"
+              },
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), variables('azureFirewallSubnetName'))]"
+              }
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', parameters('azureFirewallPublicIpName'))]"
+      ]
+    },
+    {
+      "comments": "Route table to force tunnel from spokes to Azure firewall",
+      "type": "Microsoft.Network/routeTables",
+      "apiVersion": "2020-05-01",
+      "name": "[parameters('routeTableName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "disableBgpRoutePropagation": false,
+        "routes": [
+          {
+            "name": "force-tunnel-azure-fw",
+            "properties": {
+              "addressPrefix": "0.0.0.0/0",
+              "nextHopType": "VirtualAppliance",
+              "nextHopIpAddress": "[reference(resourceId('Microsoft.Network/azureFirewalls', parameters('azureFirewallName')), '2020-05-01').ipConfigurations[0].properties.privateIpAddress]"
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/azureFirewalls', parameters('azureFirewallName'))]"
+      ]
     },
     {
       "type": "Microsoft.Network/networkInterfaces",
@@ -217,34 +345,6 @@
       },
       "dependsOn": [
         "[concat('Microsoft.Compute/virtualMachines/', parameters('vmName'))]"
-      ]
-    },
-    {
-      "type": "Microsoft.Network/bastionHosts",
-      "apiVersion": "2020-05-01",
-      "name": "[parameters('bastionHostName')]",
-      "location": "[parameters('location')]",
-      "sku": {
-        "name": "Basic"
-      },
-      "properties": {
-        "ipConfigurations": [
-          {
-            "name": "IpConf",
-            "properties": {
-              "subnet": {
-                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), variables('bastionSubnetName'))]"
-              },
-              "publicIPAddress": {
-                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIpName'))]"
-              }
-            }
-          }
-        ]
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
-        "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIpName'))]"
       ]
     }
   ]
