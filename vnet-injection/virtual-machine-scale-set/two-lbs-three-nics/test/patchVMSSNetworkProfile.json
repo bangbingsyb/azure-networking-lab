@@ -1,0 +1,64 @@
+{
+  "properties": {
+    "virtualMachineProfile": {
+      "networkProfile": {
+        "networkInterfaceConfigurations": [
+          {
+            "name": "standardNic",
+            "properties": {
+              "primary": true,
+              "ipConfigurations": [
+                {
+                  "name": "ipConfig1",
+                  "properties": {
+                    "primary": true,
+                    "subnet": {
+                      "id": "/subscriptions/af20b225-d632-4791-97a0-2b33fa486420/resourceGroups/provider-rg-3nic-2lb/providers/Microsoft.Network/virtualNetworks/provider-vnet/subnets/management"
+                    },
+                    "privateIPAddressVersion": "IPv4"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "elasticNic-untrusted",
+            "properties": {
+              "primary": false,
+              "nicType": "Elastic",
+              "ipConfigurations": [
+                {
+                  "name": "ipConfig1",
+                  "properties": {
+                    "primary": true,
+                    "subnet": {
+                      "id": "/subscriptions/bc3b91ed-1253-42b5-826d-de20de48b2d9/resourceGroups/customer-rg-3nic-2lb/providers/Microsoft.Network/virtualNetworks/customer-vnet/subnets/default"
+                    },
+                    "privateIPAddressVersion": "IPv4",
+                    "loadBalancerBackendAddressPools": [
+                      {
+                        "id": "/subscriptions/af20b225-d632-4791-97a0-2b33fa486420/resourceGroups/provider-rg-3nic-2lb/providers/Microsoft.Network/loadBalancers/provider-public-lb/backendAddressPools/bp1"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "name": "parentNic-untrusted",
+            "properties": {
+              "primary": false,
+              "elasticNetworkInterfaceLinkConfigurations": [
+                {
+                  "name": "elasticNic",
+                  "primary": true
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}
