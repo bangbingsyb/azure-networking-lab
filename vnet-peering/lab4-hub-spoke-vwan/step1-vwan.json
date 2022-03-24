@@ -1,0 +1,71 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources."
+      }
+    },
+    "uniqueSuffix": {
+      "type": "string",
+      "defaultValue": "[uniqueString(utcNow())]",
+      "metadata": {
+        "description": "Unique suffix used as part of the default resource names."
+      }
+    },
+    "vwanName": {
+      "type": "string",
+      "defaultValue": "[concat('vwan-', parameters('uniqueSuffix'))]",
+      "metadata": {
+        "description": "Name for the virtual WAN."
+      }
+    },
+    "vhubName": {
+      "type": "string",
+      "defaultValue": "[concat('vhub-', parameters('uniqueSuffix'))]",
+      "metadata": {
+        "description": "Name for the virtual hub."
+      }
+    },
+    "addressPrefix": {
+      "type": "string",
+      "defaultValue": "10.0.0.0/16",
+      "metadata": {
+        "description": "Address range for the virtual network."
+      }
+    }
+  },
+  "variables": {
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/virtualWans",
+      "apiVersion": "2020-05-01",
+      "name": "[parameters('vwanName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "allowVnetToVnetTraffic": true,
+        "allowBranchToBranchTraffic": true,
+        "type": "Standard"
+      }
+    },
+    {
+      "type": "Microsoft.Network/virtualHubs",
+      "apiVersion": "2020-05-01",
+      "name": "[parameters('vhubName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "addressPrefix": "[parameters('addressPrefix')]",
+        "virtualWan": {
+          "id": "[resourceId('Microsoft.Network/virtualWans', parameters('vwanName'))]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualWans', parameters('vwanName'))]"
+      ]
+    }
+  ]
+}
