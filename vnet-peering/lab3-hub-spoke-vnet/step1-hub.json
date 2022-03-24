@@ -118,6 +118,18 @@
       "metadata": {
         "description": "Name for the route table."
       }
+    },
+    "spoke1VNetAddressPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Address range for the spoke 1 virtual network."
+      }
+    },
+    "spoke2VNetAddressPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Address range for the spoke 2 virtual network."
+      }
     }
   },
   "variables": {
@@ -235,6 +247,36 @@
               "subnet": {
                 "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), variables('azureFirewallSubnetName'))]"
               }
+            }
+          }
+        ],
+        "networkRuleCollections": [
+          {
+            "name": "allow-spoke-to-spoke",
+            "properties": {
+              "priority": 100,
+              "action": {
+                "type": "Allow"
+              },
+              "rules": [
+                {
+                  "name": "spoke-to-spoke",
+                  "protocols": [
+                    "Any"
+                  ],
+                  "sourceAddresses": [
+                    "[parameters('spoke1VNetAddressPrefix')]",
+                    "[parameters('spoke2VNetAddressPrefix')]"
+                  ],
+                  "destinationAddresses": [
+                    "[parameters('spoke1VNetAddressPrefix')]",
+                    "[parameters('spoke2VNetAddressPrefix')]"
+                  ],
+                  "destinationPorts": [
+                    "*"
+                  ]
+                }
+              ]
             }
           }
         ]
