@@ -1,0 +1,143 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "The location for all resources"
+            }
+        },
+        "defaultResourceNamePrefix": {
+            "type": "string",
+            "defaultValue": "demo",
+            "metadata": {
+                "description": "The resource name prefix used by the default resource names in the template"
+            }
+        },
+        "uniqueId": {
+            "type": "string",
+            "defaultValue": "[uniqueString(utcNow())]",
+            "metadata": {
+                "description": "The resource name prefix used by the default resource names in the template"
+            }
+        },
+        "virtualNetworkResourceGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the resource group of the virtual network to inject the NGINX deployment"
+            }
+        },
+        "virtualNetworkName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('defaultResourceNamePrefix'), '-vnet')]",
+            "metadata": {
+                "description": "The name of the virtual network to inject the NGINX deployment"
+            }
+        },
+        "delegatedSubnetName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('defaultResourceNamePrefix'), '-delegated-subnet')]",
+            "metadata": {
+                "description": "The name of the delegated subnet of the virtual network to inject the NGINX deployment"
+            }
+        },
+        "rootConfigFilePath": {
+            "type": "string",
+            "defaultValue": "nginx.conf",
+            "metadata": {
+                "description": "The file path of the root NGINX configuration file"
+            }
+        },
+        "rootConfigContent": {
+            "type": "string",
+            "defaultValue": "aHR0cCB7CiAgICBpbmNsdWRlIHVwc3RyZWFtLmNvbmY7CiAgICBzZXJ2ZXIgewogICAgICAgIGxpc3RlbiA4MDsKICAgICAgICBsb2NhdGlvbiAvIHsKICAgICAgICAgICAgZGVmYXVsdF90eXBlIHRleHQvaHRtbDsKICAgICAgICAgICAgcmV0dXJuIDIwMCAnPCFET0NUWVBFIGh0bWw+PGgxIHN0eWxlPSJmb250LXNpemU6MzBweDsiPkVhdGluZyB0aGUgUmFpbmJvdyE8L2gxPjxpbWcgc3JjPSJodHRwczovL25naW54ZGVtby5ibG9iLmNvcmUud2luZG93cy5uZXQvZGVtby1hcHAvZWF0LWEtcmFpbmJvdy5qcGciIGFsdD0iUmFpbmJvdyBGb29kIiBzdHlsZT0id2lkdGg6MTEwMHB4O2hlaWdodDo3MDBweDsiPlxuJzsKICAgICAgICB9CiAgICAgICAgbG9jYXRpb24gL3JlZC8gewogICAgICAgICAgICBwcm94eV9wYXNzIGh0dHA6Ly9hcHAxL3JlZC87CiAgICAgICAgfQogICAgICAgIGxvY2F0aW9uIC95ZWxsb3cvIHsKICAgICAgICAgICAgcHJveHlfcGFzcyBodHRwOi8vYXBwMi95ZWxsb3cvOwogICAgICAgIH0KICAgICAgICBsb2NhdGlvbiAvZ3JlZW4vIHsKICAgICAgICAgICAgcHJveHlfcGFzcyBodHRwOi8vYXBwMy9ncmVlbi87CiAgICAgICAgfQogICAgfQp9",
+            "metadata": {
+                "description": "The based64 encoded content of the root NGINX configuration file"
+            }
+        },
+        "childConfigFilePath": {
+            "type": "string",
+            "defaultValue": "upstream.conf",
+            "metadata": {
+                "description": "The file path of the child NGINX configuration file included by the root configuration file"
+            }
+        },
+        "childConfigContent": {
+            "type": "string",
+            "defaultValue": "dXBzdHJlYW0gYXBwMSB7CiAgICBzZXJ2ZXIgMTAuMC4xLjQ6ODA7CiAgICBzZXJ2ZXIgMTAuMC4xLjU6ODA7Cn0KdXBzdHJlYW0gYXBwMiB7CiAgICBzZXJ2ZXIgMTAuMC4xLjY6ODA7CiAgICBzZXJ2ZXIgMTAuMC4xLjc6ODA7Cn0KdXBzdHJlYW0gYXBwMyB7CiAgICBzZXJ2ZXIgMTAuMC4xLjg6ODA7CiAgICBzZXJ2ZXIgMTAuMC4xLjk6ODA7Cn0=",
+            "metadata": {
+                "description": "The based64 encoded content of the child NGINX configuration file included by the root configuration file"
+            }
+        }
+    },
+    "variables": {
+        "nginxDeploymentName": "[concat(parameters('defaultResourceNamePrefix'), '-', parameters('uniqueId'))]",
+        "publicIPAddressName": "[concat(parameters('defaultResourceNamePrefix'), '-', parameters('uniqueId'), '-pip')]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2020-11-01",
+            "location": "[parameters('location')]",
+            "name": "[variables('publicIPAddressName')]",
+            "properties": {
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Static"
+            },
+            "sku": {
+                "name": "Standard"
+            },
+            "tags": {
+                "fastpathenabled": "true"
+            }
+        },
+        {
+            "type": "NGINX.NGINXPLUS/nginxDeployments",
+            "apiVersion": "2021-05-01-preview",
+            "name": "[variables('nginxDeploymentName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddressName'))]"
+            ],
+            "properties": {
+                "networkProfile": {
+                    "frontEndIPConfiguration": {
+                        "publicIPAddresses": [
+                            {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddressName'))]"
+                            }
+                        ],
+                        "privateIPAddresses": []
+                    },
+                    "networkInterfaceConfiguration": {
+                        "subnetId": "[resourceId(subscription().subscriptionId, parameters('virtualNetworkResourceGroupName'), 'Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), parameters('delegatedSubnetName'))]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "NGINX.NGINXPLUS/nginxDeployments/configurations",
+            "apiVersion": "2021-05-01-preview",
+            "name": "[concat(variables('nginxDeploymentName'), '/default')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('NGINX.NGINXPLUS/nginxDeployments', variables('nginxDeploymentName'))]"
+            ],
+            "properties": {
+                "rootFile": "[parameters('rootConfigFilePath')]",
+                "files": [
+                    {
+                        "content": "[parameters('rootConfigContent')]",
+                        "virtualPath": "[parameters('rootConfigFilePath')]"
+                    },
+                    {
+                        "content": "[parameters('childConfigContent')]",
+                        "virtualPath": "[parameters('childConfigFilePath')]"
+                    }
+                ]
+            }
+        }
+    ]
+}

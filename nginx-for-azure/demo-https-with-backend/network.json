@@ -1,0 +1,156 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "The location for all resources"
+            }
+        },
+        "defaultResourceNamePrefix": {
+            "type": "string",
+            "defaultValue": "demo",
+            "metadata": {
+                "description": "The resource name prefix used by the default resource names in the template"
+            }
+        },
+        "virtualNetworkAddressPrefix": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/16",
+            "metadata": {
+                "description": "The IP address space of the virtual network to deploy NGINX"
+            }
+        },
+        "delegatedSubnetAddressPrefix": {
+            "type": "string",
+            "defaultValue": "10.0.0.0/24",
+            "metadata": {
+                "description": "The IP address space of the subnet delegated to NGINX service provider"
+            }
+        },
+        "appSubnetAddressPrefix": {
+            "type": "string",
+            "defaultValue": "10.0.1.0/24",
+            "metadata": {
+                "description": "The IP address space of the application workload subnet"
+            }
+        }
+    },
+    "variables": {
+        "virtualNetworkName": "[concat(parameters('defaultResourceNamePrefix'), '-vnet')]",
+        "delegatedSubnetName": "delegated",
+        "appSubnetName": "app",
+        "delegatedSubnetNSGName": "nsg-delegated-subnet",
+        "appSubnetNSGName": "nsg-app-subnet"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2020-11-01",
+            "location": "[parameters('location')]",
+            "name": "[variables('delegatedSubnetNSGName')]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "http",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "sourceAddressPrefix": "Internet",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 100,
+                            "direction": "Inbound",
+                            "sourcePortRanges": [],
+                            "destinationPortRanges": [ "80", "443" ],
+                            "sourceAddressPrefixes": [],
+                            "destinationAddressPrefixes": []
+                        }
+                    }
+                ]
+            },
+            "tags": {
+                "fastpathenabled": "true"
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2020-11-01",
+            "location": "[parameters('location')]",
+            "name": "[variables('appSubnetNSGName')]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "http",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "sourceAddressPrefix": "Internet",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 100,
+                            "direction": "Inbound",
+                            "sourcePortRanges": [],
+                            "destinationPortRanges": [ "80" ],
+                            "sourceAddressPrefixes": [],
+                            "destinationAddressPrefixes": []
+                        }
+                    }
+                ]
+            },
+            "tags": {
+                "fastpathenabled": "true"
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2020-11-01",
+            "name": "[variables('virtualNetworkName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('delegatedSubnetNSGName'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('appSubnetNSGName'))]"
+            ],
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('virtualNetworkAddressPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('delegatedSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('delegatedSubnetAddressPrefix')]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('delegatedSubnetNSGName'))]"
+                            },
+                            "delegations": [
+                                {
+                                    "name": "NGINX.NGINXPLUS/nginxDeployments",
+                                    "properties": {
+                                        "serviceName": "NGINX.NGINXPLUS/nginxDeployments"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "[variables('appSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('appSubnetAddressPrefix')]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('appSubnetNSGName'))]"
+                            }
+                        }
+                    }
+                ]
+            },
+            "tags": {
+                "fastpathenabled": "true"
+            }
+        }
+    ]
+}

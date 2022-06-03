@@ -1,0 +1,223 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "The location for all resources"
+            }
+        },
+        "defaultResourceNamePrefix": {
+            "type": "string",
+            "defaultValue": "demo",
+            "metadata": {
+                "description": "The resource name prefix used by the default resource names in the template"
+            }
+        },
+        "uniqueId": {
+            "type": "string",
+            "defaultValue": "[uniqueString(utcNow())]",
+            "metadata": {
+                "description": "The resource name prefix used by the default resource names in the template"
+            }
+        },
+        "virtualNetworkResourceGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the resource group of the virtual network to inject the NGINX deployment"
+            }
+        },
+        "virtualNetworkName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('defaultResourceNamePrefix'), '-vnet')]",
+            "metadata": {
+                "description": "The name of the virtual network to inject the NGINX deployment"
+            }
+        },
+        "delegatedSubnetName": {
+            "type": "string",
+            "defaultValue": "delegated",
+            "metadata": {
+                "description": "The name of the delegated subnet of the virtual network to inject the NGINX deployment"
+            }
+        },
+        "userAssignedIdentityName": {
+            "type": "string",
+            "defaultValue": "[concat(parameters('defaultResourceNamePrefix'), '-mi')]",
+            "metadata": {
+                "description": "The user assigned MI name"
+            }
+        },
+        "userAssignedIdentityResourceGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "The resource group of the user assigned MI"
+            }
+        },
+        "keyVaultName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the key vault where the TLS certificate is stored"
+            }
+        },
+        "keyVaultCertificateName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the key vault certificate"
+            }
+        },
+        "certificateVirtualPath": {
+            "type": "string",
+            "defaultValue": "cert.crt",
+            "metadata": {
+                "description": "The certificate virtual path of the NGINX certificate resource"
+            }
+        },
+        "keyVirtualPath": {
+            "type": "string",
+            "defaultValue": "cert.key",
+            "metadata": {
+                "description": "The key virtual path of the NGINX certificate resource"
+            }
+        },
+        "rootConfigFilePath": {
+            "type": "string",
+            "defaultValue": "nginx.conf",
+            "metadata": {
+                "description": "The file path of the root NGINX configuration file"
+            }
+        },
+        "rootConfigContent": {
+            "type": "string",
+            "defaultValue": "aHR0cCB7CiAgICBpbmNsdWRlIHVwc3RyZWFtLmNvbmY7CiAgICBzZXJ2ZXIgewogICAgICAgIGxpc3RlbiA4MDsKICAgICAgICBzZXJ2ZXJfbmFtZSAqLmNvbnRvc28uY29tIGNvbnRvc28uY29tOwogICAgICAgIHJldHVybiAzMDEgaHR0cHM6Ly9jb250b3NvLmNvbSRyZXF1ZXN0X3VyaTsKICAgIH0KICAgIHNlcnZlciB7CiAgICAgICAgbGlzdGVuIDQ0MyBzc2wgZGVmYXVsdF9zZXJ2ZXI7CiAgICAgICAgc2VydmVyX25hbWUgY29udG9zby5jb207CiAgICAgICAgc3NsX2NlcnRpZmljYXRlIGNlcnQuY3J0OwogICAgICAgIHNzbF9jZXJ0aWZpY2F0ZV9rZXkgY2VydC5rZXk7CiAgICAgICAgbG9jYXRpb24gLyB7CiAgICAgICAgICAgIGRlZmF1bHRfdHlwZSB0ZXh0L2h0bWw7CiAgICAgICAgICAgIHJldHVybiAyMDAgJzwhRE9DVFlQRSBodG1sPjxoMSBzdHlsZT0iZm9udC1zaXplOjMwcHg7Ij5FYXRpbmcgdGhlIFJhaW5ib3chPC9oMT48aW1nIHNyYz0iaHR0cHM6Ly9uZ2lueGRlbW8uYmxvYi5jb3JlLndpbmRvd3MubmV0L2RlbW8tYXBwL2VhdC1hLXJhaW5ib3cuanBnIiBhbHQ9IlJhaW5ib3cgRm9vZCIgc3R5bGU9IndpZHRoOjExMDBweDtoZWlnaHQ6NzAwcHg7Ij5cbic7CiAgICAgICAgfQogICAgICAgIGxvY2F0aW9uIC9yZWQvIHsKICAgICAgICAgICAgcHJveHlfcGFzcyBodHRwOi8vYXBwMS9yZWQvOwogICAgICAgIH0KICAgICAgICBsb2NhdGlvbiAveWVsbG93LyB7CiAgICAgICAgICAgIHByb3h5X3Bhc3MgaHR0cDovL2FwcDIveWVsbG93LzsKICAgICAgICB9CiAgICAgICAgbG9jYXRpb24gL2dyZWVuLyB7CiAgICAgICAgICAgIHByb3h5X3Bhc3MgaHR0cDovL2FwcDMvZ3JlZW4vOwogICAgICAgIH0KICAgIH0KfQ==",
+            "metadata": {
+                "description": "The based64 encoded content of the root NGINX configuration file"
+            }
+        },
+        "childConfigFilePath": {
+            "type": "string",
+            "defaultValue": "upstream.conf",
+            "metadata": {
+                "description": "The file path of the child NGINX configuration file included by the root configuration file"
+            }
+        },
+        "childConfigContent": {
+            "type": "string",
+            "defaultValue": "dXBzdHJlYW0gYXBwMSB7CiAgICBzZXJ2ZXIgMTAuMC4xLjQ6ODA7CiAgICBzZXJ2ZXIgMTAuMC4xLjU6ODA7Cn0KdXBzdHJlYW0gYXBwMiB7CiAgICBzZXJ2ZXIgMTAuMC4xLjY6ODA7CiAgICBzZXJ2ZXIgMTAuMC4xLjc6ODA7Cn0KdXBzdHJlYW0gYXBwMyB7CiAgICBzZXJ2ZXIgMTAuMC4xLjg6ODA7CiAgICBzZXJ2ZXIgMTAuMC4xLjk6ODA7Cn0=",
+            "metadata": {
+                "description": "The based64 encoded content of the child NGINX configuration file included by the root configuration file"
+            }
+        }
+    },
+    "variables": {
+        "nginxDeploymentName": "[concat(parameters('defaultResourceNamePrefix'), '-', parameters('uniqueId'))]",
+        "publicIPAddressName": "[concat(parameters('defaultResourceNamePrefix'), '-', parameters('uniqueId'), '-pip')]",
+        "userAssignedIdentityResourceId": "[resourceId(parameters('userAssignedIdentityResourceGroupName'), 'Microsoft.ManagedIdentity/userAssignedIdentities', parameters('userAssignedIdentityName'))]",
+        "certificateResourceName": "tlscert",
+        "MonitoringMetricsPublisherRoleDefinitionId": "3913510d-42f4-4e42-8a64-420c390055eb",
+        "keyVaultCertSecretUrl": "[concat('https://', parameters('keyVaultName'), '.vault.azure.net/secrets/', parameters('keyVaultCertificateName'))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2020-11-01",
+            "location": "[parameters('location')]",
+            "name": "[variables('publicIPAddressName')]",
+            "properties": {
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Static"
+            },
+            "sku": {
+                "name": "Standard"
+            },
+            "tags": {
+                "fastpathenabled": "true"
+            }
+        },
+        {
+            "type": "NGINX.NGINXPLUS/nginxDeployments",
+            "apiVersion": "2021-05-01-preview",
+            "name": "[variables('nginxDeploymentName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddressName'))]"
+            ],
+            "sku": {
+                "name": "preview_Monthly_gmz7xq9ge3py"
+            },
+            "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                    "[variables('userAssignedIdentityResourceId')]": {}
+                }
+            },
+            "properties": {
+                "networkProfile": {
+                    "frontEndIPConfiguration": {
+                        "publicIPAddresses": [
+                            {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddressName'))]"
+                            }
+                        ],
+                        "privateIPAddresses": []
+                    },
+                    "networkInterfaceConfiguration": {
+                        "subnetId": "[resourceId(subscription().subscriptionId, parameters('virtualNetworkResourceGroupName'), 'Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), parameters('delegatedSubnetName'))]"
+                    }
+                },
+                "enableDiagnosticsSupport": true
+            }
+        },
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2020-04-01-preview",
+            "name": "[guid(resourceGroup().id)]",
+            "scope": "[resourceId('NGINX.NGINXPLUS/nginxDeployments', variables('nginxDeploymentName'))]",
+            "dependsOn": [
+                "[resourceId('NGINX.NGINXPLUS/nginxDeployments', variables('nginxDeploymentName'))]"
+            ],
+            "properties": {
+                "roleDefinitionId": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', variables('MonitoringMetricsPublisherRoleDefinitionId'))]",
+                "principalId": "[reference(variables('userAssignedIdentityResourceId'), '2018-11-30').principalId]"
+            }
+        },
+        {
+            "type": "NGINX.NGINXPLUS/nginxDeployments/certificates",
+            "apiVersion": "2021-05-01-preview",
+            "name": "[concat(variables('nginxDeploymentName'), '/', variables('certificateResourceName'))]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('NGINX.NGINXPLUS/nginxDeployments', variables('nginxDeploymentName'))]"
+            ],
+            "properties": {
+                "certificateVirtualPath": "[parameters('certificateVirtualPath')]",
+                "keyVirtualPath": "[parameters('keyVirtualPath')]",
+                "keyVaultSecretId": "[variables('keyVaultCertSecretUrl')]"
+            }
+        },
+        {
+            "type": "NGINX.NGINXPLUS/nginxDeployments/configurations",
+            "apiVersion": "2021-05-01-preview",
+            "name": "[concat(variables('nginxDeploymentName'), '/default')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('NGINX.NGINXPLUS/nginxDeployments/certificates', variables('nginxDeploymentName'), variables('certificateResourceName'))]"
+            ],
+            "properties": {
+                "rootFile": "[parameters('rootConfigFilePath')]",
+                "files": [
+                    {
+                        "content": "[parameters('rootConfigContent')]",
+                        "virtualPath": "[parameters('rootConfigFilePath')]"
+                    },
+                    {
+                        "content": "[parameters('childConfigContent')]",
+                        "virtualPath": "[parameters('childConfigFilePath')]"
+                    }
+                ]
+            }
+        }
+    ]
+}
