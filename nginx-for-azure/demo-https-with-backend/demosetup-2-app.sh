@@ -2,14 +2,21 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-SUB="bc3b91ed-1253-42b5-826d-de20de48b2d9"
-REGION="eastus2"
-RG="demo-app-$REGION"
-STORAGE_NAME="demonginx"
+PREFIX=$1
+SUB=$2
+REGION=$3
+
+RG="${PREFIX}-app-${REGION}"
+STORAGE_NAME="${PREFIX}nginx"
 
 az login
 az account set --subscription $SUB
 az group create --name $RG --location $REGION
 
 az deployment group create --resource-group $RG --template-file network.json
-az deployment group create --resource-group $RG --template-file app-compute.json --parameters storageAccountName=$STORAGE_NAME
+
+ssh-keygen -t rsa -b 2048 -f sshkey -N ""
+adminPublicKey="$(cat sshkey.pub)"
+echo "$adminPublicKey"
+
+az deployment group create --resource-group $RG --template-file app-compute.json --parameters storageAccountName=$STORAGE_NAME adminPublicKey=$adminPublicKey

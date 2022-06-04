@@ -4,8 +4,8 @@ IFS=$'\n\t'
 
 storage_account=$1
 
-sudo apt-get update -y
-sudo apt install -y --no-install-recommends nginx
+sudo apt update -y
+sudo apt install -y nginx
 sudo apt install unzip
 
 wget "https://$storage_account.blob.core.windows.net/demo-app/contents.zip"

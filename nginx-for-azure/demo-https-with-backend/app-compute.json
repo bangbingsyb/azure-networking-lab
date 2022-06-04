@@ -40,13 +40,12 @@
             "type": "string",
             "defaultValue": "Standard_DS1_v2"
         },
-        "vmAdminUserName": {
+        "adminUsername": {
             "defaultValue": "azureuser",
             "type": "string"
         },
-        "sshkey": {
-            "type": "string",
-            "defaultValue": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC0A6YjEww6CTxZnygP2JmTSYuXVP+V5Z3VL9e68CEtqONVt0YcZHWLSVc7miZSe0Q8l45eADWC4IXobQ+l7H4UDxAmYC6lbO2JecCMnEJ/JazXqsk0TLFUrgDi6lK6MAfisHEV5BEC9ByvAcz+236Mt4UCIQkETBOz1VhxQe8pEieQSaHMjLLoRzEWEoBd8Jm5VJwLH3O60Ij6eNL1/KaLjvZ+CMrnmCUarYDAXF/pcvMQguO2iqfG4KmLTZR+mYyMiOcYgcmwkkOmq0a7WYDtbuzLAPl27ycbDApH/n9zM+q+zA2V8g7s2GCO71/S2yRG9XDfGCVme6rfUnUZy0eL REDMOND+akagarw@MININT-PG6KPVI"
+        "adminPublicKey": {
+            "type": "string"
         },
         "vmCount": {
             "type": "int",
@@ -155,14 +154,14 @@
                 },
                 "osProfile": {
                     "computerName": "[concat(variables('vmNamePrefix'), '-', copyIndex())]",
-                    "adminUsername": "[parameters('vmAdminUserName')]",
+                    "adminUsername": "[parameters('adminUsername')]",
                     "linuxConfiguration": {
                         "disablePasswordAuthentication": true,
                         "ssh": {
                             "publicKeys": [
                                 {
                                     "path": "/home/azureuser/.ssh/authorized_keys",
-                                    "keyData": "[parameters('sshkey')]"
+                                    "keyData": "[parameters('adminPublicKey')]"
                                 }
                             ]
                         }

@@ -2,11 +2,13 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-SUB="bc3b91ed-1253-42b5-826d-de20de48b2d9"
-REGION="westus2"
-RG="demo-global"
-STORAGE_NAME="demonginx"
-KEYVAULT_NAME="demonginx"
+PREFIX=$1
+SUB=$2
+REGION=$3
+
+RG="${PREFIX}-global-${REGION}"
+STORAGE_NAME="${PREFIX}nginx"
+KEYVAULT_NAME="${PREFIX}nginx"
 
 STORAGE_CONTAINER_NAME="demo-app"
 KEYVAULT_CERT_NAME="tlscert"
