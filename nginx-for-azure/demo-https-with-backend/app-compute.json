@@ -121,7 +121,7 @@
         },
         {
             "type": "Microsoft.Compute/virtualMachines",
-            "apiVersion": "2019-03-01",
+            "apiVersion": "2021-03-01",
             "location": "[parameters('location')]",
             "name": "[concat(variables('vmNamePrefix'), '-', copyIndex())]",
             "dependsOn": [
@@ -171,29 +171,31 @@
             "tags": {
                 "fastpathenabled": "true"
             },
-            "resources": [
-                {
-                    "type": "extensions",
-                    "apiVersion": "2019-03-01",
-                    "name": "[concat(variables('vmExtensionName'), '-', copyIndex())]",
-                    "location": "[parameters('location')]",
-                    "dependsOn": [
-                        "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('vmNamePrefix'), '-', copyIndex()))]"
-                    ],
-                    "properties": {
-                        "publisher": "Microsoft.Azure.Extensions",
-                        "type": "CustomScript",
-                        "typeHandlerVersion": "2.1",
-                        "autoUpgradeMinorVersion": false,
-                        "protectedSettings": {
-                            "fileUris": ["[variables('vmDeploymentScriptUrl')]"],
-                            "commandToExecute": "[variables('vmDeploymentCommand')]"
-                        }
-                    }
-                }
-            ],
             "copy": {
                 "name": "vmCopy",
+                "count": "[parameters('vmCount')]"
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2021-03-01",
+            "name": "[concat(variables('vmNamePrefix'), '-', copyIndex(), '/', 'InstallWebServer')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/virtualMachines', concat(variables('vmNamePrefix'), '-', copyIndex()))]"
+            ],
+            "properties": {
+                "publisher": "Microsoft.Azure.Extensions",
+                "type": "CustomScript",
+                "typeHandlerVersion": "2.1",
+                "autoUpgradeMinorVersion": false,
+                "protectedSettings": {
+                    "fileUris": [ "[variables('vmDeploymentScriptUrl')]" ],
+                    "commandToExecute": "[variables('vmDeploymentCommand')]"
+                }
+            },
+            "copy": {
+                "name": "vmExtensionCopy",
                 "count": "[parameters('vmCount')]"
             }
         }

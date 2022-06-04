@@ -17,6 +17,5 @@ az deployment group create --resource-group $RG --template-file network.json
 
 ssh-keygen -t rsa -b 2048 -f sshkey -N ""
 adminPublicKey="$(cat sshkey.pub)"
-echo "$adminPublicKey"
 
 az deployment group create --resource-group $RG --template-file app-compute.json --parameters storageAccountName=$STORAGE_NAME adminPublicKey=$adminPublicKey
