@@ -4,13 +4,11 @@ IFS=$'\n\t'
 
 storage_account=$1
 
-sudo apt update -y
-sudo apt install -y nginx
-sudo apt install unzip
+sudo apt-get update -y
+sudo apt-get install -y nginx
+sudo apt-get install -y unzip
 
 wget "https://$storage_account.blob.core.windows.net/demo-app/contents.zip"
-sudo apt install unzip
-
 unzip contents.zip -d /home/azureuser
 
 ## now we need to update nginx to point to the content folder for the root directory
