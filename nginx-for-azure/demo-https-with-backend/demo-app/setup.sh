@@ -1,7 +1,4 @@
 #!/bin/bash
-set -euo pipefail
-IFS=$'\n\t'
-
 storage_account=$1
 
 sudo apt-get update -y

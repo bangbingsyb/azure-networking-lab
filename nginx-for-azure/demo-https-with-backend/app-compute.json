@@ -59,7 +59,6 @@
         "publicIPAddressNamePrefix": "[concat(parameters('defaultResourceNamePrefix'), '-app-pip')]",
         "networkInterfaceNamePrefix": "[concat(parameters('defaultResourceNamePrefix'), '-app-nic')]",
         "vmNamePrefix": "[concat(parameters('defaultResourceNamePrefix'), '-app-vm')]",
-        "vmExtensionName": "[concat(parameters('defaultResourceNamePrefix'), '-app-vm-extension')]",
         "vmDeploymentScriptUrl": "[concat('https://', parameters('storageAccountName'),'.blob.core.windows.net/demo-app/setup.sh')]",
         "vmDeploymentCommand": "[concat('chmod 777 setup.sh && ./setup.sh ', parameters('storageAccountName'))]"
     },
