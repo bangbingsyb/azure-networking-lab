@@ -19,12 +19,12 @@ provider "azapi" {
 }
 
 resource "azurerm_resource_group" "rg" {
-  name     = "n4a-tf-sample"
-  location = "eastus2"
+  name     = "${var.prefix}-rg"
+  location = var.location
 }
 
 resource "azurerm_public_ip" "pip" {
-  name                = "n4a-tf-pip"
+  name                = "${var.prefix}-pip"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
   allocation_method   = "Static"
@@ -33,7 +33,7 @@ resource "azurerm_public_ip" "pip" {
 }
 
 resource "azurerm_network_security_group" "nsg" {
-  name                = "n4a-tf-nsg"
+  name                = "${var.prefix}-nsg"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 }
@@ -53,7 +53,7 @@ resource "azurerm_network_security_rule" "http" {
 }
 
 resource "azurerm_virtual_network" "vnet" {
-  name                = "n4a-tf-vnet"
+  name                = "${var.prefix}-vnet"
   address_space       = ["10.0.0.0/16"]
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
@@ -63,7 +63,6 @@ resource "azapi_resource" "subnet-delegated" {
   type      = "Microsoft.Network/virtualNetworks/subnets@2021-08-01"
   name      = "delegated"
   parent_id = azurerm_virtual_network.vnet.id
-
   body = jsonencode({
     properties = {
       addressPrefix = "10.0.1.0/24"
@@ -84,13 +83,12 @@ resource "azapi_resource" "subnet-delegated" {
 
 resource "azapi_resource" "nginx-deployment" {
   type      = "NGINX.NGINXPLUS/nginxDeployments@2021-05-01-preview"
-  name      = "n4a-tf-deployment"
+  name      = "${var.prefix}-deployment"
   parent_id = azurerm_resource_group.rg.id
   location  = azurerm_resource_group.rg.location
-
   body = jsonencode({
     sku = {
-      name = "preview_Monthly_hjdtn7tfnxcy"
+      name = "publicpreview_Monthly_gmz7xq9ge3py"
     }
     properties = {
       networkProfile = {
@@ -107,4 +105,5 @@ resource "azapi_resource" "nginx-deployment" {
       }
     }
   })
+  response_export_values = ["properties.ipAddress", "properties.nginxVersion"]
 }
