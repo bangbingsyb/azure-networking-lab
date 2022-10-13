@@ -8,7 +8,7 @@ REGION=$3
 
 RG="${PREFIX}-nginx-$REGION"
 RG_APP="${PREFIX}-app-$REGION"
-RG_GLOBAL="${PREFIX}-global"
+RG_GLOBAL="${PREFIX}-global-$REGION"
 
 KEYVAULT_NAME="${PREFIX}nginx"
 STORAGE_NAME="${PREFIX}nginx"
